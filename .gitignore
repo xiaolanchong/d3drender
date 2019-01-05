@@ -1,0 +1,9 @@
+/.vs
+/D3DRender/D3DRender.vcxproj.user
+/D3DRender/Debug
+/D3DRender/Release
+/Debug
+/Release
+/RenderTest/Debug
+/RenderTest/Release
+/RenderTest/RenderTest.vcxproj.user

@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Render">
+      <UniqueIdentifier>{4b05c920-1e1b-452c-9277-fd318ccfdfcf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{9adc45cf-a38a-473e-829c-da3577898f26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{64e0c844-3e4f-4f14-b2d1-4a2cdf617f41}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Blitter.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\PrimarySurface.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Render.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\RenderTypes.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\SecondarySurface.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\Surface.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\SurfaceUtils.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\shaders\ChromaKey.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\shaders\Texture.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="D3DRender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ILogger.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\IRender.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ISurface.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ISurfaceBlt.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Stencil.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DRender.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Blitter.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\PrimarySurface.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Render.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\SecondarySurface.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\Surface.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\SurfaceUtils.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Render\ChromaKey.fx">
+      <Filter>Render</Filter>
+    </FxCompile>
+    <FxCompile Include="Render\Texture.fx">
+      <Filter>Render</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>
