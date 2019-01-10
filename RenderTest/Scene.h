@@ -16,6 +16,7 @@ private:
 	void testBitBlt();
 	void testStretchBlt();
 	void testTileBlt();
+	void testRenderTarget();
 private:
 	
 	d3drender::IRenderPtr m_render;
@@ -26,6 +27,8 @@ private:
 	d3drender::ISurfacePtr m_bltSurfaceWithMask;
 	d3drender::ISurfacePtr m_stretchSurface;
 	d3drender::ISurfacePtr m_tileSurface;
+
+	d3drender::ISurfacePtr m_renderTargetSurface;
 
 	HWND m_hWnd;
 };

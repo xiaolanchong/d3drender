@@ -5,9 +5,7 @@
 
 namespace d3drender
 {
-	namespace
-	{
-		D3DFORMAT convert(PixelFormat fmt)
+		D3DFORMAT ConvertFormat(PixelFormat fmt)
 		{
 			switch (fmt)
 			{
@@ -19,35 +17,36 @@ namespace d3drender
 				return D3DFMT_UNKNOWN;
 			}
 		}
-	}
 
 	Surface::Surface(const IDirect3DDevicePtr& device,
-		const SurfaceCreationParams& params)
+		const SurfaceCreationParams& params, bool temporary)
 		: m_creationParams(params)
 		, m_device(device)
 		, m_chromaKeyColor(RGB(0, 0, 0))
 		, m_chromaKeyColorValid(false)
 	{
 		const unsigned int levels = 1;
-		const unsigned int d3dUsage = D3DUSAGE_RENDERTARGET;
-		const auto d3dFmt = convert(params.m_pixelFormat);
+		const long d3dRenderUsage = D3DUSAGE_RENDERTARGET;// | (temporary ? D3DUSAGE_DYNAMIC : 0);
+		const D3DFORMAT d3dRenderTargetFmt = ConvertFormat(params.m_pixelFormat); //D3DFMT_A8R8G8B8;
 
 		HRESULT hr = E_FAIL;
-		hr = m_device->CreateTexture(params.m_width, params.m_height, levels, d3dUsage, d3dFmt,
-			D3DPOOL_DEFAULT, &m_texture, nullptr);
+		hr = m_device->CreateTexture(params.m_width, params.m_height, levels, (DWORD) d3dRenderUsage, d3dRenderTargetFmt,
+			D3DPOOL_DEFAULT, &m_targetTexture, nullptr);
 		if (hr != S_OK)
 		{
 			throw std::runtime_error("Texture creation failed");
 		}
 
-		hr = m_device->CreateTexture(params.m_width, params.m_height, levels, 0, d3dFmt,
+		const D3DFORMAT d3dInputTextureFmt = ConvertFormat(params.m_pixelFormat);
+		const auto d3dTextUsage = temporary ? D3DUSAGE_DYNAMIC : 0;
+		hr = m_device->CreateTexture(params.m_width, params.m_height, levels, (DWORD)d3dTextUsage, d3dInputTextureFmt,
 			D3DPOOL_SYSTEMMEM, &m_inputTexture, nullptr);
 		if (hr != S_OK)
 		{
 			throw std::runtime_error("Offscreen plain surface creation failed");
 		}
-#if 1
-		hr = m_texture->GetSurfaceLevel(0, &m_textureLevel0);
+
+		hr = m_targetTexture->GetSurfaceLevel(0, &m_targetTextureLevel0);
 		if (hr != S_OK)
 		{
 			throw std::runtime_error("Texture level 0 getting failed");
@@ -58,13 +57,30 @@ namespace d3drender
 		{
 			throw std::runtime_error("Texture level 0 getting failed");
 		}
-#endif
-		m_blitter.reset(new Blitter(m_device, m_textureLevel0, Blitter::SurfaceType::OffScreenPlain, SIZE{ LONG(params.m_width), LONG(params.m_height) }));
+
+		m_blitter.reset(new Blitter(m_device, m_targetTextureLevel0, Blitter::SurfaceType::OffScreenPlain, SIZE{ LONG(params.m_width), LONG(params.m_height) }));
+	}
+
+	Surface::Surface(const IDirect3DDevicePtr& device,
+		const SurfaceCreationParams& params, COLORREF chromaKeyColor)
+	: Surface(device, params, true)  /// TODO: set RT TARGET off also
+	{
+		SetChromaKey(chromaKeyColor);
+		m_blitter->ColorBlt(nullptr, chromaKeyColor);
+		m_blitter->ResetBltDone();
 	}
 
 	LockResult Surface::Lock(const RECT* rect)
 	{
-		ATLVERIFY(!m_blitter->WasBltDone());
+		if (m_blitter->WasBltDone())
+		{
+			HRESULT hr = m_device->GetRenderTargetData(m_targetTextureLevel0, m_inputTextureLevel0);
+			ATLVERIFY(hr == S_OK);
+
+			m_blitter->ResetBltDone();
+		}
+		//ATLVERIFY(!m_blitter->WasBltDone());
+		// D3DLOCK_DISCARD for temporary?
 		return LockTexture(m_inputTexture, rect);
 	}
 
@@ -73,7 +89,7 @@ namespace d3drender
 		HRESULT hr = m_inputTexture->UnlockRect(0);
 		ATLVERIFY(hr == S_OK);
 
-		hr = m_device->UpdateTexture(m_inputTexture, m_texture);
+		hr = m_device->UpdateTexture(m_inputTexture, m_targetTexture);
 		ATLVERIFY(hr == S_OK);
 
 		m_blitter->ResetBltDone();
@@ -97,7 +113,7 @@ namespace d3drender
 		HRESULT hr = m_inputTextureLevel0->ReleaseDC(hdc);
 		ATLVERIFY(hr == S_OK);
 
-		hr = m_device->UpdateTexture(m_inputTexture, m_texture);
+		hr = m_device->UpdateTexture(m_inputTexture, m_targetTexture);
 		ATLVERIFY(hr == S_OK);
 
 		m_blitter->ResetBltDone();
@@ -113,13 +129,13 @@ namespace d3drender
 
 	COLORREF Surface::GetChromaKey() const
 	{
-		assert(m_chromaKeyColorValid);
+		//assert(m_chromaKeyColorValid);
 		return m_chromaKeyColorValid ? m_chromaKeyColor : RGB(0, 0, 0);
 	}
 
 	bool Surface::IsOK() const
 	{
-		return m_device && m_texture;
+		return m_device && m_targetTexture;
 	}
 
 	ISurfaceBlt& Surface::GetBlitter()

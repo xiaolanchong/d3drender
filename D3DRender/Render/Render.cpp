@@ -40,14 +40,16 @@ namespace d3drender
 		D3DPRESENT_PARAMETERS d3dpp;
 		ZeroMemory(&d3dpp, sizeof(d3dpp));
 		d3dpp.Windowed = TRUE;
-		d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		d3dpp.SwapEffect = D3DSWAPEFFECT_COPY; // D3DSWAPEFFECT_DISCARD;
 		d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
 		d3dpp.EnableAutoDepthStencil = TRUE;
 		d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
+		d3dpp.hDeviceWindow = hWnd;
 
+		const DWORD creationFlags = /*D3DCREATE_MULTITHREADED| */D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 		// Create the D3DDevice
 		hr = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-			D3DCREATE_SOFTWARE_VERTEXPROCESSING,
+			creationFlags,
 			&d3dpp, &m_device);
 		if (FAILED(hr))
 		{
@@ -68,7 +70,12 @@ namespace d3drender
 
 	ISurfacePtr Render::CreateSurface(const SurfaceCreationParams& params)
 	{
-		return std::make_shared<Surface>(m_device, params);
+		return std::make_shared<Surface>(m_device, params, false);
+	}
+
+	ISurfacePtr Render::CreateTemporarySurface(const SurfaceCreationParams& params)
+	{
+		return std::make_shared<Surface>(m_device, params, true);
 	}
 
 	ISurfacePtr Render::CreatePrimarySurface(const SurfaceCreationParams& params)

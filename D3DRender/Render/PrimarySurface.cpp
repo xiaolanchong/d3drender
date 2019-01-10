@@ -63,10 +63,20 @@ namespace d3drender
 
 	/////////////////////////////////////////////////////////////////////
 
-	bool PrimarySurface::Blt(int /*x*/, int /*y*/, ISurface& /*srcSurf*/,
-		const RECT* /*srcRect*/, const BltParams& /*params*/)
+	bool PrimarySurface::Blt(int x, int y, ISurface& srcSurf,
+		const RECT* srcRect, const BltParams& /*params*/)
 	{
-		// done by Present
+		//const CRect destRect(x, y, );
+		ATLVERIFY(x == 0);
+		ATLVERIFY(y == 0);
+		if (srcRect)
+		{
+			CRect rc(*srcRect);
+			ATLVERIFY(rc.Width() == GetParams().m_width);
+			ATLVERIFY(rc.Height() == GetParams().m_height);
+		}
+		HRESULT hr = m_device->Present(nullptr, nullptr, nullptr, nullptr);
+		//ATLVERIFY(SUCCEEDED(hr));
 		return true;
 	}
 
@@ -77,8 +87,7 @@ namespace d3drender
 		return false;
 	}
 
-	bool PrimarySurface::BevelBlt(const RECT* /*dstRect*/, ISurface& /*srcSurf*/, const RECT* /*srcRect*/,
-		int /*lightX*/, int /*ligthY*/, BevelDir /*dir*/)
+	bool PrimarySurface::BevelBlt(const RECT* /*dstRect*/, int /*thickness*/, BevelDir /*dir*/)
 	{
 		assert(!"BevelBlt not supported for primary surface");
 		return false;

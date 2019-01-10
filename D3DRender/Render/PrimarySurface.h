@@ -38,8 +38,7 @@ namespace d3drender
 			const RECT* srcRect, const BltParams& params) override;
 		virtual bool TileBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 			int anchorX, int anchorY, UseSrcChromaKey useSrcChromaKey) override;
-		virtual bool BevelBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
-			int lightX, int ligthY, BevelDir dir) override;
+		virtual bool BevelBlt(const RECT* dstRect, int thickness, BevelDir dir) override;
 		virtual bool ColorBlt(const RECT* dstRect, COLORREF color) override;
 		virtual bool StretchBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 			const BltParams& params) override;

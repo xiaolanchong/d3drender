@@ -75,6 +75,9 @@
     <ClInclude Include="include\Stencil.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="Render\SurfaceDumper.h">
+      <Filter>Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -102,6 +105,9 @@
       <Filter>Render</Filter>
     </ClCompile>
     <ClCompile Include="Render\SurfaceUtils.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\SurfaceDumper.cpp">
       <Filter>Render</Filter>
     </ClCompile>
   </ItemGroup>

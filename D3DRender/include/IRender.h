@@ -12,6 +12,7 @@ namespace d3drender
 		virtual ~IRender() = default;
 
 		virtual ISurfacePtr CreateSurface(const SurfaceCreationParams& params) = 0;
+		virtual ISurfacePtr CreateTemporarySurface(const SurfaceCreationParams& params) = 0;
 		virtual ISurfacePtr CreatePrimarySurface(const SurfaceCreationParams& params) = 0;
 		virtual ISurfacePtr CreateSecondarySurface(const SurfaceCreationParams& params) = 0;
 	};

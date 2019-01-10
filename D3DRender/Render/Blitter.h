@@ -4,6 +4,7 @@
 #include "../include/ISurfaceBlt.h"
 #include "RenderTypes.h"
 #include "SurfaceUtils.h"
+#include "SurfaceDumper.h"
 
 namespace d3drender
 {
@@ -26,8 +27,7 @@ namespace d3drender
 			const RECT* srcRect, const BltParams& params) override;
 		virtual bool TileBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 			int anchorX, int anchorY, UseSrcChromaKey useSrcChromaKey) override;
-		virtual bool BevelBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
-			int lightX, int ligthY, BevelDir dir) override;
+		virtual bool BevelBlt(const RECT* dstRect, int thickness, BevelDir dir) override;
 		virtual bool ColorBlt(const RECT* dstRect, COLORREF color) override;
 		virtual bool StretchBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 			const BltParams& params) override;
@@ -49,6 +49,8 @@ namespace d3drender
 			m_wasBltDone = false;
 		}
 
+		bool BltWithChromaKey(int x, int y, const IDirect3DTexturePtr& texture, const CRect& rect, COLORREF chromaKeyColor);
+
 	private:
 
 		void setupMatrices();
@@ -59,6 +61,12 @@ namespace d3drender
 		void drawTexturedSquare(const CRect& dstRect, const IDirect3DTexturePtr& texture, const RECT* srcRect,
 			const BltParams& params, COLORREF srcChromaKey, const CRectF* calculatedTexturePatch);
 		IDirect3DVBPtr createTexturedSquareBuffer(const RECT& rect, const CRectF& texturePatc);
+
+		IDirect3DSurfacePtr setRenderTarget();
+		void restoreRenderTarget(const IDirect3DSurfacePtr& prevRenderTarget);
+
+		void dumpSurface(const CString& operation);
+
 	private:
 		const IDirect3DDevicePtr m_device;
 		const IDirect3DSurfacePtr m_renderTarget;
@@ -70,5 +78,8 @@ namespace d3drender
 		COLORREF m_chromaKeyColor;
 
 		bool m_wasBltDone;
+
+		IDirect3DSurfacePtr m_dumpTarget;
+		SurfaceDumper m_dumper;
 	};
 }

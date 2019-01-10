@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
+#include <thread>
 #include "../include/ISurface.h"
 #include "../include/ISurfaceBlt.h"
 #include "RenderTypes.h"
@@ -8,17 +10,28 @@
 
 namespace d3drender
 {
-	class Surface : public ISurface
+	using SharedMutexPtr = std::shared_ptr<std::mutex>;
+
+	class ISourceSurface : public ISurface
+	{
+	public:
+		virtual IDirect3DTexturePtr GetOutputTexture() = 0;
+	};
+
+	class Surface : public ISourceSurface
 	{
 	public:
 		Surface(const IDirect3DDevicePtr& device,
-			const SurfaceCreationParams& params);
+			const SurfaceCreationParams& params, bool temporary);
+
+		Surface(const IDirect3DDevicePtr& device,
+			const SurfaceCreationParams& params, COLORREF chromaKeyColor);
 
 		Surface& operator= (const Surface&) = delete;
 		Surface(const Surface&) = delete;
 
 		//IDirect3DSurfacePtr GetRenderTarget() const;
-		IDirect3DTexturePtr GetTexture() const;
+		virtual IDirect3DTexturePtr GetOutputTexture() override;
 	private:
 		virtual LockResult Lock(const RECT* rect) override;
 		virtual void Unlock() override;
@@ -39,8 +52,8 @@ namespace d3drender
 		const SurfaceCreationParams m_creationParams;
 		IDirect3DDevicePtr  m_device;
 
-		IDirect3DTexturePtr m_texture;
-		IDirect3DSurfacePtr m_textureLevel0; // Level 0 surface
+		IDirect3DTexturePtr m_targetTexture;
+		IDirect3DSurfacePtr m_targetTextureLevel0; // Level 0 surface
 
 		IDirect3DTexturePtr m_inputTexture;
 		IDirect3DSurfacePtr m_inputTextureLevel0; // Level 0 surface
@@ -50,6 +63,8 @@ namespace d3drender
 
 		std::unique_ptr<Blitter> m_blitter;
 	};
+
+	D3DFORMAT ConvertFormat(PixelFormat fmt);
 
 	inline const SurfaceCreationParams& Surface::GetParams() const
 	{
@@ -61,8 +76,8 @@ namespace d3drender
 		return m_textureLevel0;
 	}*/
 
-	inline IDirect3DTexturePtr Surface::GetTexture() const
+	inline IDirect3DTexturePtr Surface::GetOutputTexture()
 	{
-		return m_texture;
+		return m_targetTexture;
 	}
 }

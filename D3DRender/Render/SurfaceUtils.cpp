@@ -4,15 +4,12 @@
 
 namespace d3drender
 {
-	namespace
-	{
-
-	}
 
 	LockResult LockSurface(const IDirect3DSurfacePtr& surface, const RECT* rect)
 	{
 		D3DLOCKED_RECT lockedRect{};
 		HRESULT hr = surface->LockRect(&lockedRect, rect, D3DLOCK_NOSYSLOCK);
+		ATLASSERT(hr == S_OK);
 		if (hr == S_OK)
 		{
 			return LockResult{ lockedRect.pBits, lockedRect.Pitch };
@@ -26,7 +23,7 @@ namespace d3drender
 	LockResult LockTexture(const IDirect3DTexturePtr& texture, const RECT* rect)
 	{
 		D3DLOCKED_RECT lockedRect{};
-		HRESULT hr = texture->LockRect(0, &lockedRect, rect, D3DLOCK_NOSYSLOCK);
+		HRESULT hr = texture->LockRect(0, &lockedRect, rect, 0);// D3DLOCK_NOSYSLOCK);
 		if (hr == S_OK)
 		{
 			return LockResult{ lockedRect.pBits, lockedRect.Pitch };
@@ -71,6 +68,7 @@ namespace d3drender
 				return (Pixel16)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3));
 			case PixelFormat::R5G5B5:
 				return (Pixel16)(((r & 0xF8) << 7) | ((g & 0xF8) << 2) | ((b & 0xF8) >> 3));
+			case PixelFormat::R8G8B8:
 			default:
 				assert(false);
 				return Pixel16(0);

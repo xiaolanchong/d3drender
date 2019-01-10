@@ -24,7 +24,7 @@ namespace d3drender
 			{
 				return *srcRect;
 			}
-			return CRect{ 0, 0, int(srcSurf.GetParams().m_width) - 1, int(srcSurf.GetParams().m_height) - 1 };
+			return CRect{ 0, 0, int(srcSurf.GetParams().m_width), int(srcSurf.GetParams().m_height)};
 		}
 
 		CRect getMyRenderRect(const CSize& extents, const RECT* srcRect)
@@ -33,7 +33,7 @@ namespace d3drender
 			{
 				return *srcRect;
 			}
-			return CRect{ 0, 0, extents.cx - 1, extents.cy - 1 };
+			return CRect{ 0, 0, extents.cx, extents.cy };
 		}
 
 		struct ColoredVertex
@@ -78,10 +78,42 @@ namespace d3drender
 		hr = m_device->CreatePixelShader((const DWORD*)shader_chroma_key::g_ps20_main, &m_chromaKeyShader);
 	}
 
+	IDirect3DSurfacePtr Blitter::setRenderTarget()
+	{
+		IDirect3DSurfacePtr prevRenderTarget;
+		if (m_surfaceType == SurfaceType::OffScreenPlain)
+		{
+#if 1
+			HRESULT hr = m_device->GetRenderTarget(0, &prevRenderTarget);
+			ATLVERIFY(hr == S_OK);
+
+			hr = m_device->SetRenderTarget(0, m_renderTarget);
+			ATLVERIFY(hr == S_OK);
+#endif
+		}
+		return prevRenderTarget;
+	}
+
+	void Blitter::restoreRenderTarget(const IDirect3DSurfacePtr& prevRenderTarget)
+	{
+#if 1
+		if (prevRenderTarget)
+		{
+			HRESULT hr = m_device->SetRenderTarget(0, prevRenderTarget);
+			ATLVERIFY(hr == S_OK);
+		}
+#endif
+	}
+
 	bool Blitter::Blt(int x, int y, ISurface& srcSurf, const RECT* srcRect, const BltParams& params)
 	{
+		if (srcRect && IsRectEmpty(srcRect))
+		{
+			return true;
+		}
+
 		HRESULT hr = S_OK;
-		const Surface* srcSurfImpl = dynamic_cast<const Surface*>(&srcSurf);
+		ISourceSurface* const srcSurfImpl = dynamic_cast<ISourceSurface*>(&srcSurf);
 		if (!srcSurfImpl)
 		{
 			return false;
@@ -90,17 +122,39 @@ namespace d3drender
 		const CRect srcCalcRect = getRenderRect(srcSurf, srcRect);
 		const CRect dstRect = CRect(CPoint(x, y), CSize(srcCalcRect.Width(), srcCalcRect.Height()));
 		const auto chromaKey = params.m_useSrcChromaKey == UseSrcChromaKey::Yes ? srcSurf.GetChromaKey() : RGB(0, 0, 0);
-		drawTexturedSquare(dstRect, srcSurfImpl->GetTexture(), srcRect, params, chromaKey, nullptr);
+
+		if (params.m_useSrcChromaKey == UseSrcChromaKey::Yes)
+		{
+			int a = 7;
+		}
+
+		if (srcCalcRect.Width() == 800 && srcCalcRect.Height() == 254)
+		{
+			int a = 7;
+		}
+
+		const auto& srcSurfParams = srcSurf.GetParams();
+		CRectF texturePath = CRectF
+		{ float(srcCalcRect.left) / srcSurfParams.m_width,  float(srcCalcRect.top) / srcSurfParams.m_height,
+		  float(srcCalcRect.right) / srcSurfParams.m_width, float(srcCalcRect.bottom) / srcSurfParams.m_height };
+
+		IDirect3DSurfacePtr prevRenderTarget = setRenderTarget();
+		drawTexturedSquare(dstRect, srcSurfImpl->GetOutputTexture(), srcRect, params, chromaKey, &texturePath);
+		restoreRenderTarget(prevRenderTarget);
 
 		m_wasBltDone = true;
-		return hr;
+
+		CString op;
+		op.Format(_T("Blt-to_%d_%d-from_%d_%d_%d_%d"), x, y, dstRect.left, dstRect.top, dstRect.right, dstRect.bottom);
+		dumpSurface(op);
+		return hr == S_OK;
 	}
 
 	bool Blitter::TileBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 		int anchorX, int anchorY, UseSrcChromaKey useSrcChromaKey)
 	{
 		HRESULT hr = S_OK;
-		const Surface* srcSurfImpl = dynamic_cast<const Surface*>(&srcSurf);
+		ISourceSurface* const srcSurfImpl = dynamic_cast<ISourceSurface*>(&srcSurf);
 		if (!srcSurfImpl)
 		{
 			return false;
@@ -109,7 +163,11 @@ namespace d3drender
 		ATLVERIFY(anchorY == 0);
 
 		const CRect srcCalcRect = getRenderRect(srcSurf, srcRect);
+		ATLVERIFY(srcCalcRect.left == 0);
+		ATLVERIFY(srcCalcRect.top == 0);
 		const CRect dstCalcRect = getMyRenderRect(m_extents, dstRect);
+		ATLVERIFY(srcCalcRect.Width() == srcSurf.GetParams().m_width);
+		ATLVERIFY(srcCalcRect.Height() == srcSurf.GetParams().m_height);
 		const auto chromaKey = useSrcChromaKey == UseSrcChromaKey::Yes ? srcSurf.GetChromaKey() : RGB(0, 0, 0);
 		BltParams params{ useSrcChromaKey };
 		CRectF texturePatch
@@ -118,27 +176,40 @@ namespace d3drender
 			float(dstCalcRect.Width()) / srcCalcRect.Width(),
 			float(dstCalcRect.Height()) / srcCalcRect.Height()
 		};
-		drawTexturedSquare(dstCalcRect, srcSurfImpl->GetTexture(), srcRect, params, chromaKey, &texturePatch);
+
+		IDirect3DSurfacePtr prevRenderTarget = setRenderTarget();
+		drawTexturedSquare(dstCalcRect, srcSurfImpl->GetOutputTexture(), /*srcRect*/dstCalcRect, params, chromaKey, &texturePatch);
+		restoreRenderTarget(prevRenderTarget);
 
 		m_wasBltDone = true;
+		dumpSurface("TileBlt");
 		ATLVERIFY(hr == S_OK);
 		return hr == S_OK;
 	}
 
-	bool Blitter::BevelBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
-		int lightX, int ligthY, BevelDir dir)
+	bool Blitter::BevelBlt(const RECT* dstRect, int thickness, BevelDir dir)
 	{
-		UNREFERENCED_PARAMETER(lightX);
-		UNREFERENCED_PARAMETER(ligthY);
+		UNREFERENCED_PARAMETER(dstRect);
+		UNREFERENCED_PARAMETER(thickness);
 		UNREFERENCED_PARAMETER(dir);
-		return StretchBlt(dstRect, srcSurf, srcRect, BltParams{});
+
+		if (dstRect && IsRectEmpty(dstRect))
+		{
+			return true;
+		}
+		return true;
 	}
 
 	bool Blitter::ColorBlt(const RECT* dstRect, COLORREF color)
 	{
+		if (dstRect && IsRectEmpty(dstRect))
+		{
+			return true;
+		}
+
 		m_wasBltDone = true;
 		HRESULT hr = E_FAIL;
-		if (m_surfaceType == Blitter::SurfaceType::BackBuffer && true)
+		if (m_surfaceType == Blitter::SurfaceType::BackBuffer)
 		{
 			// Clear the backbuffer and the zbuffer
 			const DWORD rectCount = dstRect ? 1U : 0U;
@@ -152,29 +223,26 @@ namespace d3drender
 				return false;
 			}
 
+			dumpSurface("ColorBlt");
 			return true;
 		}
 
-		else if (m_surfaceType == Blitter::SurfaceType::OffScreenPlain && true)
+		else if (m_surfaceType == Blitter::SurfaceType::OffScreenPlain)
 		{
 			hr = m_device->ColorFill(m_renderTarget, dstRect, FromColorRef(color));
 			ATLVERIFY(hr == S_OK);
+			dumpSurface("ColorBlt");
 			return hr == S_OK;
 		}
 		
-		{
-	//		hr = m_device->SetRenderTarget(0, m_renderTarget);
-	//		ATLVERIFY(hr == S_OK);
-		}
-		setupMatrices();
-		drawSquare(dstRect, color);
+		ATLASSERT(false);
 		return false;
 	}
 
 	bool Blitter::StretchBlt(const RECT* dstRect, ISurface& srcSurf, const RECT* srcRect,
 		const BltParams& params)
 	{
-		const Surface* srcSurfImpl = dynamic_cast<const Surface*>(&srcSurf);
+		ISourceSurface* const srcSurfImpl = dynamic_cast<ISourceSurface*>(&srcSurf);
 		if (!srcSurfImpl)
 		{
 			return false;
@@ -183,8 +251,12 @@ namespace d3drender
 		const CRect srcCalcRect = getRenderRect(srcSurf, srcRect);
 		const CRect dstCalcRect = getMyRenderRect(m_extents, dstRect);
 		const auto chromaKey = params.m_useSrcChromaKey == UseSrcChromaKey::Yes ? srcSurf.GetChromaKey() : RGB(0, 0, 0);
-		drawTexturedSquare(dstCalcRect, srcSurfImpl->GetTexture(), srcRect, params, chromaKey, nullptr);
 
+		IDirect3DSurfacePtr prevRenderTarget = setRenderTarget();
+		drawTexturedSquare(dstCalcRect, srcSurfImpl->GetOutputTexture(), srcRect, params, chromaKey, nullptr);
+		restoreRenderTarget(prevRenderTarget);
+
+		dumpSurface("StretchBlt");
 		m_wasBltDone = true;
 		HRESULT hr = S_OK;
 		ATLVERIFY(hr == S_OK);
@@ -315,6 +387,7 @@ namespace d3drender
 
 		//setupMatrices();
 
+
 		hr = m_device->SetStreamSource(0, vertexBuffer, 0, sizeof(TexturedVertex));
 		ATLVERIFY(hr == S_OK);
 
@@ -429,5 +502,64 @@ namespace d3drender
 		ATLVERIFY(hr == S_OK);
 
 		return vertexBuffer;
+	}
+
+	bool Blitter::BltWithChromaKey(int x, int y, const IDirect3DTexturePtr& texture, const CRect& srcRect, COLORREF chromaKeyColor)
+	{
+		CRect dstRect(CPoint(x, y), CSize(srcRect.Width(), srcRect.Height()));
+		BltParams params{ UseSrcChromaKey::Yes };
+		drawTexturedSquare(dstRect, texture, nullptr, params, chromaKeyColor, nullptr);
+		return true;
+	}
+
+	void Blitter::dumpSurface(const CString& operation)
+	{
+		if (m_surfaceType == SurfaceType::BackBuffer)
+		{
+			if (!m_dumpTarget)
+			{
+				const long d3dRenderUsage = 0;// | (temporary ? D3DUSAGE_DYNAMIC : 0);
+				const D3DFORMAT d3dFmt = D3DFMT_X8R8G8B8; // ConvertFormat(params.m_pixelFormat); //D3DFMT_X8R8G8B8;
+
+				HRESULT hr = E_FAIL;
+				hr = m_device->CreateOffscreenPlainSurface(m_extents.cx, m_extents.cy, d3dFmt, D3DPOOL_SYSTEMMEM, &m_dumpTarget, nullptr);
+				ATLVERIFY(hr == S_OK);
+			}
+			{
+				IDirect3DSurfacePtr surface;
+				HRESULT hr = E_FAIL;
+
+				hr = m_device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &surface);
+				ATLVERIFY(hr == S_OK);
+
+				hr = m_device->GetRenderTargetData(surface, m_dumpTarget);
+				ATLVERIFY(hr == S_OK);
+			}
+
+			m_dumper.Dump(m_dumpTarget, operation);
+		}
+		else
+		{
+			return;
+
+			const long d3dRenderUsage = 0;// | (temporary ? D3DUSAGE_DYNAMIC : 0);
+			const D3DFORMAT d3dFmt = D3DFMT_R5G6B5; // ConvertFormat(params.m_pixelFormat); //D3DFMT_X8R8G8B8;
+
+			m_dumpTarget = nullptr;
+			HRESULT hr = E_FAIL;
+
+			D3DSURFACE_DESC desc;
+			m_renderTarget->GetDesc(&desc);
+
+			ATLVERIFY(desc.Width == m_extents.cx);
+			ATLVERIFY(desc.Height == m_extents.cy);
+			hr = m_device->CreateOffscreenPlainSurface(desc.Width, desc.Height, d3dFmt, D3DPOOL_SYSTEMMEM, &m_dumpTarget, nullptr);
+			ATLVERIFY(hr == S_OK);
+
+			hr = m_device->GetRenderTargetData(m_renderTarget, m_dumpTarget);
+			ATLVERIFY(hr == S_OK);
+
+			m_dumper.Dump(m_dumpTarget, operation);
+		}
 	}
 }

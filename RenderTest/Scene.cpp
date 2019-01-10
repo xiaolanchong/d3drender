@@ -24,8 +24,9 @@ Scene::Scene(HWND hWnd)
 	const auto width = m_bltSurfaceWithMask->GetParams().m_width;
 	const auto height = m_bltSurfaceWithMask->GetParams().m_height;
 	std::uint8_t* buffer = reinterpret_cast<std::uint8_t*>(res.m_buffer);
-
-	const Pixel16 maskColor = ConvertToPixel16(PixelFormat::R5G5B5, RGB(32, 32, 32));
+	
+	const COLORREF chromaKeyConst = RGB(0xad, 0xdf, 0x2f);
+	const Pixel16 maskColor = ConvertToPixel16(PixelFormat::R5G5B5, chromaKeyConst);
 	for (size_t j = 0; j < height; ++j, buffer += res.m_pitch)
 	{
 		Pixel16* line = reinterpret_cast<Pixel16*>(buffer);
@@ -44,10 +45,13 @@ Scene::Scene(HWND hWnd)
 	}
 
 	m_bltSurfaceWithMask->Unlock();
-	m_bltSurfaceWithMask->SetChromaKey(RGB(32, 32, 32));
+
+	m_bltSurfaceWithMask->SetChromaKey(chromaKeyConst);
 
 	SurfaceCreationParams tileParams{ PixelFormat::R5G5B5, 10, 10 };
 	m_tileSurface = m_render->CreateSurface(tileParams);
+
+	m_renderTargetSurface = m_render->CreateSurface(surfParams);
 }
 
 CSize Scene::getExtent() const
@@ -108,6 +112,19 @@ void Scene::testTileBlt()
 	m_secondary->GetBlitter().TileBlt(stretchRect, *m_tileSurface,  nullptr, 0, 0, UseSrcChromaKey::No);
 }
 
+void Scene::testRenderTarget()
+{
+	auto extent = getExtent();
+
+	m_renderTargetSurface->GetBlitter().ColorBlt(nullptr, RGB(255, 255, 255));
+
+	CRect stretchRect(CPoint(10, 10), CSize(50, 50));
+		m_renderTargetSurface->GetBlitter().StretchBlt(&stretchRect, *m_tileSurface, nullptr, BltParams{});
+
+	m_secondary->GetBlitter().Blt(3*extent.cx / 4 -3 , 3* extent.cy / 4 - 3,
+ 	*m_renderTargetSurface, nullptr, BltParams{ UseSrcChromaKey::No, BlendSurfaces::No });
+}
+
 void Scene::Render()
 {
 	// must be first
@@ -115,6 +132,7 @@ void Scene::Render()
 	testBitBlt();
 	testStretchBlt();
 	testTileBlt();
+	testRenderTarget();
 
 	m_primary->Flip();
 }
