@@ -19,11 +19,16 @@ namespace d3drender
 
 		Render& operator= (const Render&) = delete;
 		Render(const Render&) = delete;
+
+	private:
+		void createShaders();
 	private:
 		ILoggerPtr m_logger;
 
 		IDirect3DPtr m_d3d;
 		IDirect3DDevicePtr m_device;
 		const bool m_windowMode;
+
+		ShaderContext m_shaderContext;
 	};
 }

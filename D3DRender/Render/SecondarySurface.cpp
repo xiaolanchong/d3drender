@@ -12,9 +12,11 @@ namespace d3drender
 	}
 
 	SecondarySurface::SecondarySurface(const IDirect3DDevicePtr& device,
+		const ShaderContext& shaders,
 		const SurfaceCreationParams& params)
 		: m_creationParams(params)
 		, m_device(device)
+		, m_shaderContext(shaders)
 	{
 		HRESULT hr = m_device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_surface);
 		if (hr != S_OK)
@@ -22,13 +24,19 @@ namespace d3drender
 			throw std::runtime_error("Surface creation failed");
 		}
 
-		m_blitter.reset(new Blitter(m_device, m_surface, Blitter::SurfaceType::BackBuffer,
-			SIZE{ LONG(params.m_width), LONG(params.m_height) }));
+		CSize size{ LONG(params.m_width), LONG(params.m_height) };
+		BlitterContext context(shaders);
+		context.m_device = m_device;
+		context.m_renderTarget = m_surface;
+		context.m_surfaceType = SurfaceType::BackBuffer;
+		context.m_extents = size;
+
+		m_blitter = std::make_unique<Blitter>(context);
 		m_blitter->ColorBlt(nullptr, RGB(64, 64, 64));
 		m_blitter->ResetBltDone();
 	}
 
-	LockResult SecondarySurface::Lock(const RECT* rect)
+	LockResult SecondarySurface::Lock(const RECT* /*rect*/)
 	{
 #if 0
 		const long d3dRenderUsage = 0;// | (temporary ? D3DUSAGE_DYNAMIC : 0);
@@ -133,7 +141,7 @@ namespace d3drender
 	{
 		if (!m_tempSurface)
 		{
-			m_tempSurface = std::make_unique<Surface>(m_device, GetParams(), c_chromaKeyColor);
+			m_tempSurface = std::make_unique<Surface>(m_device, m_shaderContext, GetParams(), c_chromaKeyColor);
 		}
 		return *m_tempSurface;
 	}

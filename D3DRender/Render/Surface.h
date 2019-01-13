@@ -18,19 +18,23 @@ namespace d3drender
 		virtual IDirect3DTexturePtr GetOutputTexture() = 0;
 	};
 
-	class Surface : public ISourceSurface
+	class Surface : public ISourceSurface,
+		public std::enable_shared_from_this<Surface>
 	{
 	public:
 		Surface(const IDirect3DDevicePtr& device,
-			const SurfaceCreationParams& params, bool temporary);
+			const ShaderContext& shaders,
+			const SurfaceCreationParams& params, 
+			bool temporary);
 
 		Surface(const IDirect3DDevicePtr& device,
-			const SurfaceCreationParams& params, COLORREF chromaKeyColor);
+			const ShaderContext& shaders,
+			const SurfaceCreationParams& params,
+			COLORREF chromaKeyColor);
 
 		Surface& operator= (const Surface&) = delete;
 		Surface(const Surface&) = delete;
 
-		//IDirect3DSurfacePtr GetRenderTarget() const;
 		virtual IDirect3DTexturePtr GetOutputTexture() override;
 	private:
 		virtual LockResult Lock(const RECT* rect) override;

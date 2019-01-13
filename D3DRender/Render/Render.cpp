@@ -19,6 +19,16 @@ namespace d3drender
 		};
 	}
 
+	namespace shader_texture
+	{
+	#include "shaders/Texture.h"
+	}
+
+	namespace shader_chroma_key
+	{
+	#include "shaders/ChromaKey.h"
+	}
+
 	Render::Render(HWND hWnd, bool windowMode, const ILoggerPtr& logger)
 	: m_logger(logger)
 	, m_windowMode(windowMode)
@@ -64,18 +74,33 @@ namespace d3drender
 		// Turn off D3D lighting
 		m_device->SetRenderState(D3DRS_LIGHTING, FALSE);
 
-		// Turn on the zbuffer
-	//	m_device->SetRenderState(D3DRS_ZENABLE, TRUE);
+		// Turn off the zbuffer
+		m_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+
+		createShaders();
+	}
+
+	void Render::createShaders()
+	{
+		HRESULT hr = E_FAIL;
+
+		static_assert(sizeof(shader_texture::g_ps20_main) % sizeof(DWORD) == 0, "Shader obj code must be DWORD aligned");
+		hr = m_device->CreatePixelShader((const DWORD*)shader_texture::g_ps20_main, &m_shaderContext.m_textureShader);
+		ATLVERIFY(hr == S_OK);
+
+		static_assert(sizeof(shader_chroma_key::g_ps20_main) % sizeof(DWORD) == 0, "Shader obj code must be DWORD aligned");
+		hr = m_device->CreatePixelShader((const DWORD*)shader_chroma_key::g_ps20_main, &m_shaderContext.m_chromaKeyShader);
+		ATLVERIFY(hr == S_OK);
 	}
 
 	ISurfacePtr Render::CreateSurface(const SurfaceCreationParams& params)
 	{
-		return std::make_shared<Surface>(m_device, params, false);
+		return std::make_shared<Surface>(m_device, m_shaderContext, params, false);
 	}
 
 	ISurfacePtr Render::CreateTemporarySurface(const SurfaceCreationParams& params)
 	{
-		return std::make_shared<Surface>(m_device, params, true);
+		return std::make_shared<Surface>(m_device, m_shaderContext, params, true);
 	}
 
 	ISurfacePtr Render::CreatePrimarySurface(const SurfaceCreationParams& params)
@@ -85,7 +110,7 @@ namespace d3drender
 
 	ISurfacePtr Render::CreateSecondarySurface(const SurfaceCreationParams& params)
 	{
-		return std::make_shared<SecondarySurface>(m_device, params);
+		return std::make_shared<SecondarySurface>(m_device, m_shaderContext, params);
 	}
 
 }

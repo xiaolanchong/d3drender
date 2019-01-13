@@ -8,17 +8,28 @@
 
 namespace d3drender
 {
+	enum class SurfaceType
+	{
+		OffScreenPlain,
+		BackBuffer
+	};
+
+	struct BlitterContext : public ShaderContext
+	{
+		BlitterContext(const ShaderContext& baseContext) : ShaderContext(baseContext) {}
+
+		IDirect3DDevicePtr	 m_device;
+		IDirect3DSurfacePtr  m_renderTarget;
+		IDirect3DSurfacePtr  m_inputSurface;
+		SurfaceType			 m_surfaceType = SurfaceType::OffScreenPlain;
+		CSize				 m_extents;
+	};
+
 	class Blitter : public ISurfaceBlt
+				  , private BlitterContext
 	{
 	public:
-
-		enum class SurfaceType
-		{
-			OffScreenPlain,
-			BackBuffer
-		};
-
-		Blitter(const IDirect3DDevicePtr& device, const IDirect3DSurfacePtr& dstSurface, SurfaceType surfaceType, const CSize& extents);
+		Blitter(const BlitterContext& context);
 
 		Blitter& operator= (const Blitter&) = delete;
 		Blitter(const Blitter&) = delete;
@@ -68,12 +79,6 @@ namespace d3drender
 		void dumpSurface(const CString& operation);
 
 	private:
-		const IDirect3DDevicePtr m_device;
-		const IDirect3DSurfacePtr m_renderTarget;
-		IDirect3DPixelShaderPtr m_textureShader;
-		IDirect3DPixelShaderPtr m_chromaKeyShader;
-		const SurfaceType m_surfaceType;
-		const CSize m_extents;
 
 		COLORREF m_chromaKeyColor;
 

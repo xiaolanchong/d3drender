@@ -19,7 +19,9 @@ namespace d3drender
 		}
 
 	Surface::Surface(const IDirect3DDevicePtr& device,
-		const SurfaceCreationParams& params, bool temporary)
+		const ShaderContext& shaders,
+		const SurfaceCreationParams& params, 
+		bool temporary)
 		: m_creationParams(params)
 		, m_device(device)
 		, m_chromaKeyColor(RGB(0, 0, 0))
@@ -58,12 +60,22 @@ namespace d3drender
 			throw std::runtime_error("Texture level 0 getting failed");
 		}
 
-		m_blitter.reset(new Blitter(m_device, m_targetTextureLevel0, Blitter::SurfaceType::OffScreenPlain, SIZE{ LONG(params.m_width), LONG(params.m_height) }));
+		CSize size{ LONG(params.m_width), LONG(params.m_height) };
+		BlitterContext context(shaders);
+		context.m_device = m_device;
+		context.m_renderTarget = m_targetTextureLevel0;
+		context.m_inputSurface = m_inputTextureLevel0;
+		context.m_surfaceType = SurfaceType::OffScreenPlain;
+		context.m_extents = size;
+
+		m_blitter.reset(new Blitter(context));
 	}
 
 	Surface::Surface(const IDirect3DDevicePtr& device,
-		const SurfaceCreationParams& params, COLORREF chromaKeyColor)
-	: Surface(device, params, true)  /// TODO: set RT TARGET off also
+		const ShaderContext& shaders,
+		const SurfaceCreationParams& params,
+		COLORREF chromaKeyColor)
+	: Surface(device, shaders, params, true)  /// TODO: set RT TARGET off also
 	{
 		SetChromaKey(chromaKeyColor);
 		m_blitter->ColorBlt(nullptr, chromaKeyColor);

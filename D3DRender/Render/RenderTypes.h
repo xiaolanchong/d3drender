@@ -13,6 +13,12 @@ namespace d3drender
 
 	using IDirect3DPixelShaderPtr = CComPtr<::IDirect3DPixelShader9>;
 
+	struct ShaderContext
+	{
+		IDirect3DPixelShaderPtr m_textureShader;
+		IDirect3DPixelShaderPtr m_chromaKeyShader;
+	};
+
 	inline D3DCOLOR FromColorRef(COLORREF color)
 	{
 		return D3DCOLOR_XRGB(GetRValue(color), GetGValue(color), GetBValue(color));

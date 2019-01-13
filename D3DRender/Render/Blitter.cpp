@@ -3,15 +3,7 @@
 #include "Surface.h"
 #include "SurfaceUtils.h"
 
-namespace shader_texture
-{
-#include "shaders/Texture.h"
-}
 
-namespace shader_chroma_key
-{
-#include "shaders/ChromaKey.h"
-}
 
 
 namespace d3drender
@@ -60,22 +52,11 @@ namespace d3drender
 		};
 	}
 
-	Blitter::Blitter(const IDirect3DDevicePtr& device, const IDirect3DSurfacePtr& renderTarget, SurfaceType surfaceType, const CSize& extents)
-		: m_device(device)
-		, m_renderTarget(renderTarget)
-		, m_surfaceType(surfaceType)
-		, m_extents(extents)
-		, m_chromaKeyColor(0)
+	Blitter::Blitter(const BlitterContext& context)
+		: m_chromaKeyColor(RGB(0, 0, 0))
 		, m_wasBltDone(false)
+		, BlitterContext(context)
 	{
-		HRESULT hr = E_FAIL;
-
-		static_assert(sizeof(shader_texture::g_ps20_main) % sizeof(DWORD) == 0, "Shader obj code must be DWORD aligned");
-		hr = m_device->CreatePixelShader((const DWORD*)shader_texture::g_ps20_main, &m_textureShader);
-		ATLVERIFY(hr == S_OK);
-
-		static_assert(sizeof(shader_chroma_key::g_ps20_main) % sizeof(DWORD) == 0, "Shader obj code must be DWORD aligned");
-		hr = m_device->CreatePixelShader((const DWORD*)shader_chroma_key::g_ps20_main, &m_chromaKeyShader);
 	}
 
 	IDirect3DSurfacePtr Blitter::setRenderTarget()
@@ -83,26 +64,22 @@ namespace d3drender
 		IDirect3DSurfacePtr prevRenderTarget;
 		if (m_surfaceType == SurfaceType::OffScreenPlain)
 		{
-#if 1
 			HRESULT hr = m_device->GetRenderTarget(0, &prevRenderTarget);
 			ATLVERIFY(hr == S_OK);
 
 			hr = m_device->SetRenderTarget(0, m_renderTarget);
 			ATLVERIFY(hr == S_OK);
-#endif
 		}
 		return prevRenderTarget;
 	}
 
 	void Blitter::restoreRenderTarget(const IDirect3DSurfacePtr& prevRenderTarget)
 	{
-#if 1
 		if (prevRenderTarget)
 		{
 			HRESULT hr = m_device->SetRenderTarget(0, prevRenderTarget);
 			ATLVERIFY(hr == S_OK);
 		}
-#endif
 	}
 
 	bool Blitter::Blt(int x, int y, ISurface& srcSurf, const RECT* srcRect, const BltParams& params)
@@ -209,7 +186,7 @@ namespace d3drender
 
 		m_wasBltDone = true;
 		HRESULT hr = E_FAIL;
-		if (m_surfaceType == Blitter::SurfaceType::BackBuffer)
+		if (m_surfaceType == SurfaceType::BackBuffer)
 		{
 			// Clear the backbuffer and the zbuffer
 			const DWORD rectCount = dstRect ? 1U : 0U;
@@ -227,15 +204,24 @@ namespace d3drender
 			return true;
 		}
 
-		else if (m_surfaceType == Blitter::SurfaceType::OffScreenPlain)
+		else if (m_surfaceType == SurfaceType::OffScreenPlain)
 		{
 			hr = m_device->ColorFill(m_renderTarget, dstRect, FromColorRef(color));
 			ATLVERIFY(hr == S_OK);
 			dumpSurface("ColorBlt");
+#if 0
+			if (m_inputSurface)
+			{
+				hr = m_device->ColorFill(m_inputSurface, dstRect, FromColorRef(color));
+				ATLVERIFY(hr == S_OK);
+			}
+#else
+			m_wasBltDone = true;
+#endif
 			return hr == S_OK;
 		}
 		
-		ATLASSERT(false);
+		ATLASSERT(!"Not impelemented");
 		return false;
 	}
 
@@ -514,6 +500,7 @@ namespace d3drender
 
 	void Blitter::dumpSurface(const CString& operation)
 	{
+		return;
 		if (m_surfaceType == SurfaceType::BackBuffer)
 		{
 			if (!m_dumpTarget)

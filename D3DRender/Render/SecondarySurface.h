@@ -14,6 +14,7 @@ namespace d3drender
 	{
 	public:
 		SecondarySurface(const IDirect3DDevicePtr& device,
+			const ShaderContext& shaders,
 			const SurfaceCreationParams& params);
 
 		virtual LockResult Lock(const RECT* rect) override;
@@ -53,6 +54,8 @@ namespace d3drender
 
 		IDirect3DSurfacePtr m_lockedSurface;
 		std::unique_ptr<CRect> m_lockedRect;
+
+		const ShaderContext m_shaderContext;
 	};
 
 	inline const SurfaceCreationParams& SecondarySurface::GetParams() const
